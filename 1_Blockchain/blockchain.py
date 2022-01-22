@@ -7,7 +7,6 @@ Created on Wed Jan 19 13:43:26 2022
 
 # Modulo 1 - creando una cadena de bloques
 
-# Se usa la biblioteca o modulo Flask y el cliente HTTP Postman
 
 # modulos
 import datetime # modulo que se va utilizar para las datestamp
@@ -16,16 +15,7 @@ import json # modulo para crear ficheros json para codificar y empaquetar en jso
 from flask import Flask, jsonify # modulo del cual se importa el constructor y jsonify para transformar la peticion en json
 
 # =============================================================================
-# class Block:
-#     def __init__(self, number, nonce, data, prevHashCode = '0'):
-#         self.number = number
-#         self.nonce = nonce
-#         self.data = data
-#         self.hashCode = '0'
-#         self.prevHashCode = prevHashCode
-#     
-#     def setHasCode(self):
-#         self.hashCode = '0'
+# Estrucutra de la cadena bloques
 # =============================================================================
         
 class Blockchain:
@@ -83,8 +73,56 @@ class Blockchain:
                 return False
             previous_block = current_block
         return True
-    
-            
-     
-        
-    
+
+# =============================================================================
+# Aplicacion
+# =============================================================================
+
+#se inicializa la  app web
+app = Flask(__name__)
+app.config['JSONFY_PRETTYPRINT_REGULAR'] = False 
+# se inicializa la blockchain
+blockchain = Blockchain()     
+
+#funcion que sirve para minar y por ende agregar un nuevo bloque a la cadena por medio de peticiones http usando FLASK
+@app.route('/mine_block',methods = ['GET'])# direccion de URL la cual invoca una funcion , y que esta a su vez sera utilizando el metodo get que sirve para obtener informacion con ayuda postman
+def mine_block():
+    previous_block = blockchain.getPreviousBlock()
+    previous_proof = previous_block['proof']
+    newProof = blockchain.proofOfWork(previous_proof)
+    previous_hash = blockchain.hashOfBlock(previous_block)
+    block = blockchain.create_block(newProof, previous_hash)
+    response = {
+            'message' : 'A new block has been mined successfully',
+            'index' : block['index'],
+            'timestamp' : block['timestamp'],
+            'proof' : block['proof'],
+            'prevHashCode' : block['prevHashCode'],
+            'HashCode' : blockchain.hashOfBlock(block),
+        }
+    return jsonify(response), 200
+
+#Funcion que sirve para obtener y mostrar la cadena completa por medio de peticiones http usando FLASK
+@app.route('/get_chain',methods = ['GET'])
+def get_chain():
+    response = {
+           'chain' : blockchain.getChain(),
+           'length': len(blockchain.getChain())
+        }
+    return jsonify(response), 200 # 200 es por que es un codigo que da el servidor cuando todo va ok
+
+#Funcion que sirve para verificar si la cadena es valida o no
+@app.route('/is_valid',methods = ['GET'])
+def is_valid():
+    response = {
+           'state of the chain': 'Is valid' if blockchain.is_chain_valid(blockchain.getChain()) else " Is not valid"
+        }
+    return jsonify(response), 200 # 200 es por que es un codigo que da el servidor cuando todo va ok
+
+
+# =============================================================================
+# Ejecucion de la app
+# =============================================================================
+# app.run(host = '0.0.0.0', port = 5000) #se ejecuta en el host 0.0.0.0 y en el puerto 5000
+app.run(host = '127.0.0.1', port = 5000) #se ejecuta en el host 0.0.0.0 y en el puerto 5000
+
